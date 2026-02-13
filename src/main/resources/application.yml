@@ -65,7 +65,7 @@ kakao:
 
 # Scheduler
 scheduler:
-  cron: "0 0 7 * * *"
+  cron: "0 0 8 * * *"
 
 logging:
   level:
