@@ -21,7 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FinvizScrapingService {
 
-    private final HttpClientService httpClientService;
+    private final SeleniumClientService seleniumClientService;
 
     @Value("${scraping.finviz.base-url}")
     private String baseUrl;
@@ -47,7 +47,7 @@ public class FinvizScrapingService {
         try {
             // Top Gainers 스크래핑
             String gainersUrl = screenerUrl + "?s=ta_topgainers&f=cap_largeover";
-            Document doc = httpClientService.fetchDocument(gainersUrl, baseUrl);
+            Document doc = seleniumClientService.fetchDocument(gainersUrl, baseUrl);
             return parseScreenerTable(doc);
         } catch (IOException e) {
             log.error("Finviz 스크리너 스크래핑 실패: {}", e.getMessage());
@@ -58,7 +58,7 @@ public class FinvizScrapingService {
     public List<ScrapedFinancialData> scrapeNews() {
         log.info("Finviz 뉴스 스크래핑 시작: {}", newsUrl);
         try {
-            Document doc = httpClientService.fetchDocument(newsUrl, baseUrl);
+            Document doc = seleniumClientService.fetchDocument(newsUrl, baseUrl);
             return parseNewsTable(doc);
         } catch (IOException e) {
             log.error("Finviz 뉴스 스크래핑 실패: {}", e.getMessage());
@@ -69,10 +69,10 @@ public class FinvizScrapingService {
     private List<ScrapedFinancialData> parseScreenerTable(Document doc) {
         List<ScrapedFinancialData> dataList = new ArrayList<>();
 
-        // finviz 스크리너 테이블 파싱
+        // finviz 스크리너 테이블 파싱 (JS 렌더링 후 DOM)
         Elements rows = doc.select("table.screener_table tr, table[data-testid='screener-table'] tr, #screener-content table tr");
         if (rows.isEmpty()) {
-            rows = doc.select("table.table-light tr");
+            rows = doc.select("table.table-light tr, table.styled-table-new tr, table:has(td a.screener-link-primary) tr");
         }
 
         boolean headerSkipped = false;
@@ -115,17 +115,17 @@ public class FinvizScrapingService {
     private List<ScrapedFinancialData> parseNewsTable(Document doc) {
         List<ScrapedFinancialData> dataList = new ArrayList<>();
 
-        // finviz 뉴스 테이블 파싱
+        // finviz 뉴스 테이블 파싱 (JS 렌더링 후 DOM)
         Elements newsRows = doc.select("table.news-table tr, table.t-home-table tr, #news table tr");
         if (newsRows.isEmpty()) {
-            newsRows = doc.select("div.news a, div.content a[href*='news']");
+            newsRows = doc.select("table.styled-table-new tr:has(a), div.news a, div.content a[href*='news']");
         }
 
         int count = 0;
         for (Element row : newsRows) {
             if (count >= 30) break;
 
-            Element link = row.selectFirst("a.tab-link, a.tab-link-news, td a[href]");
+            Element link = row.selectFirst("a.tab-link, a.tab-link-news, a.nn-tab-link, td a[href]");
             if (link == null) continue;
 
             String headline = link.text().trim();

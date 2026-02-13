@@ -21,7 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class InvestingScrapingService {
 
-    private final HttpClientService httpClientService;
+    private final SeleniumClientService seleniumClientService;
 
     @Value("${scraping.investing.base-url}")
     private String baseUrl;
@@ -57,7 +57,7 @@ public class InvestingScrapingService {
     public List<ScrapedFinancialData> scrapeIndices() {
         log.info("주요 지수 스크래핑 시작: {}", indicesUrl);
         try {
-            Document doc = httpClientService.fetchDocument(indicesUrl, baseUrl);
+            Document doc = seleniumClientService.fetchDocument(indicesUrl, baseUrl);
             return parseMarketTable(doc, DataCategory.INDEX, MarketRegion.GLOBAL);
         } catch (IOException e) {
             log.error("지수 스크래핑 실패: {}", e.getMessage());
@@ -68,7 +68,7 @@ public class InvestingScrapingService {
     public List<ScrapedFinancialData> scrapeCurrencies() {
         log.info("환율 스크래핑 시작: {}", currenciesUrl);
         try {
-            Document doc = httpClientService.fetchDocument(currenciesUrl, baseUrl);
+            Document doc = seleniumClientService.fetchDocument(currenciesUrl, baseUrl);
             return parseMarketTable(doc, DataCategory.CURRENCY, MarketRegion.GLOBAL);
         } catch (IOException e) {
             log.error("환율 스크래핑 실패: {}", e.getMessage());
@@ -79,7 +79,7 @@ public class InvestingScrapingService {
     public List<ScrapedFinancialData> scrapeCommodities() {
         log.info("원자재 스크래핑 시작: {}", commoditiesUrl);
         try {
-            Document doc = httpClientService.fetchDocument(commoditiesUrl, baseUrl);
+            Document doc = seleniumClientService.fetchDocument(commoditiesUrl, baseUrl);
             return parseMarketTable(doc, DataCategory.COMMODITY, MarketRegion.GLOBAL);
         } catch (IOException e) {
             log.error("원자재 스크래핑 실패: {}", e.getMessage());
@@ -90,7 +90,7 @@ public class InvestingScrapingService {
     public List<ScrapedFinancialData> scrapeCrypto() {
         log.info("암호화폐 스크래핑 시작: {}", cryptoUrl);
         try {
-            Document doc = httpClientService.fetchDocument(cryptoUrl, baseUrl);
+            Document doc = seleniumClientService.fetchDocument(cryptoUrl, baseUrl);
             return parseMarketTable(doc, DataCategory.CRYPTO, MarketRegion.GLOBAL);
         } catch (IOException e) {
             log.error("암호화폐 스크래핑 실패: {}", e.getMessage());
@@ -101,7 +101,7 @@ public class InvestingScrapingService {
     public List<ScrapedFinancialData> scrapeEconomicCalendar() {
         log.info("경제 캘린더 스크래핑 시작: {}", economicCalendarUrl);
         try {
-            Document doc = httpClientService.fetchDocument(economicCalendarUrl, baseUrl);
+            Document doc = seleniumClientService.fetchDocument(economicCalendarUrl, baseUrl);
             return parseEconomicCalendar(doc);
         } catch (IOException e) {
             log.error("경제 캘린더 스크래핑 실패: {}", e.getMessage());
@@ -112,10 +112,11 @@ public class InvestingScrapingService {
     private List<ScrapedFinancialData> parseMarketTable(Document doc, DataCategory category, MarketRegion region) {
         List<ScrapedFinancialData> dataList = new ArrayList<>();
 
-        // investing.com 테이블 파싱 - 다양한 셀렉터 시도
-        Elements tables = doc.select("table.genTbl, table.crossRatesTbl, table[data-test='dynamic-table'], table.common-table");
+        // investing.com JS 렌더링 테이블 파싱 - 다양한 셀렉터 시도
+        Elements tables = doc.select("table[data-test='dynamic-table'], table.datatable-v2_table__XMhvl, table.genTbl, table.crossRatesTbl, table.common-table");
         if (tables.isEmpty()) {
-            tables = doc.select("table");
+            // fallback: 페이지 내 모든 테이블 중 데이터 행이 있는 것 선택
+            tables = doc.select("table:has(tbody tr td)");
         }
 
         for (Element table : tables) {
@@ -150,9 +151,9 @@ public class InvestingScrapingService {
     private List<ScrapedFinancialData> parseEconomicCalendar(Document doc) {
         List<ScrapedFinancialData> dataList = new ArrayList<>();
 
-        Elements rows = doc.select("tr.js-event-item, tr[data-test='economic-calendar-row']");
+        Elements rows = doc.select("tr.js-event-item, tr[data-test='economic-calendar-row'], table#economicCalendarData tbody tr");
         if (rows.isEmpty()) {
-            rows = doc.select("table#economicCalendarData tbody tr");
+            rows = doc.select("table:has(td.event) tbody tr, table:has(td[data-test='event']) tbody tr");
         }
 
         for (Element row : rows) {
