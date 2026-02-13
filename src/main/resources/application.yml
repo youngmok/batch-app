@@ -1,0 +1,70 @@
+spring:
+  application:
+    name: batch-app
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/financial_batch
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+  batch:
+    jdbc:
+      initialize-schema: always
+    job:
+      enabled: false
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.batch.batch_app.domain
+  configuration:
+    map-underscore-to-camel-case: true
+
+# Scraping configuration
+scraping:
+  investing:
+    base-url: https://kr.investing.com
+    indices-url: https://kr.investing.com/indices/major-indices
+    currencies-url: https://kr.investing.com/currencies
+    commodities-url: https://kr.investing.com/commodities
+    crypto-url: https://kr.investing.com/crypto
+    economic-calendar-url: https://kr.investing.com/economic-calendar
+  finviz:
+    base-url: https://finviz.com
+    screener-url: https://finviz.com/screener.ashx
+    news-url: https://finviz.com/news.ashx
+    map-url: https://finviz.com/map.ashx
+  delay-ms: 2000
+  max-retry: 3
+
+# AI configuration
+ai:
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    model: gpt-4o
+    api-url: https://api.openai.com/v1/chat/completions
+    max-tokens: 2000
+
+# Kakao configuration
+kakao:
+  oauth:
+    client-id: ${KAKAO_CLIENT_ID:}
+    redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080/oauth/kakao/callback}
+    token-url: https://kauth.kakao.com/oauth/token
+    auth-url: https://kauth.kakao.com/oauth/authorize
+  api:
+    send-me-url: https://kapi.kakao.com/v2/api/talk/memo/default/send
+
+# Scheduler
+scheduler:
+  cron: "0 0 7 * * *"
+
+logging:
+  level:
+    com.batch.batch_app: DEBUG
+    org.springframework.batch: INFO

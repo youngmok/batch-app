@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.batch.batch_app.mapper.FinancialDataMapper">
+
+    <insert id="upsertFinancialData" parameterType="FinancialDataEntity">
+        INSERT INTO financial_data (data_source, data_category, market_region, item_name,
+                                    current_value, change_value, change_percent, extra_info, scraped_date)
+        VALUES (#{dataSource}, #{dataCategory}, #{marketRegion}, #{itemName},
+                #{currentValue}, #{changeValue}, #{changePercent}, #{extraInfo}, #{scrapedDate})
+        ON CONFLICT (data_source, data_category, item_name, scraped_date)
+        DO UPDATE SET
+            current_value  = EXCLUDED.current_value,
+            change_value   = EXCLUDED.change_value,
+            change_percent = EXCLUDED.change_percent,
+            extra_info     = EXCLUDED.extra_info,
+            market_region  = EXCLUDED.market_region,
+            updated_at     = NOW()
+    </insert>
+
+    <insert id="batchUpsertFinancialData" parameterType="list">
+        <foreach collection="list" item="entity" separator=";">
+            INSERT INTO financial_data (data_source, data_category, market_region, item_name,
+                                        current_value, change_value, change_percent, extra_info, scraped_date)
+            VALUES (#{entity.dataSource}, #{entity.dataCategory}, #{entity.marketRegion}, #{entity.itemName},
+                    #{entity.currentValue}, #{entity.changeValue}, #{entity.changePercent}, #{entity.extraInfo}, #{entity.scrapedDate})
+            ON CONFLICT (data_source, data_category, item_name, scraped_date)
+            DO UPDATE SET
+                current_value  = EXCLUDED.current_value,
+                change_value   = EXCLUDED.change_value,
+                change_percent = EXCLUDED.change_percent,
+                extra_info     = EXCLUDED.extra_info,
+                market_region  = EXCLUDED.market_region,
+                updated_at     = NOW()
+        </foreach>
+    </insert>
+
+    <select id="findByScrapedDate" resultType="FinancialDataEntity">
+        SELECT id, data_source, data_category, market_region, item_name,
+               current_value, change_value, change_percent, extra_info,
+               scraped_date, created_at, updated_at
+        FROM financial_data
+        WHERE scraped_date = #{scrapedDate}
+        ORDER BY data_source, data_category, item_name
+    </select>
+
+    <select id="findBySourceAndDate" resultType="FinancialDataEntity">
+        SELECT id, data_source, data_category, market_region, item_name,
+               current_value, change_value, change_percent, extra_info,
+               scraped_date, created_at, updated_at
+        FROM financial_data
+        WHERE data_source = #{dataSource} AND scraped_date = #{scrapedDate}
+        ORDER BY data_category, item_name
+    </select>
+
+    <insert id="insertAiSummary" parameterType="AiSummary">
+        INSERT INTO ai_summary (summary_date, summary_text, model_used, token_used)
+        VALUES (#{summaryDate}, #{summaryText}, #{modelUsed}, #{tokenUsed})
+        ON CONFLICT (summary_date)
+        DO UPDATE SET
+            summary_text = EXCLUDED.summary_text,
+            model_used   = EXCLUDED.model_used,
+            token_used   = EXCLUDED.token_used,
+            created_at   = NOW()
+    </insert>
+
+    <select id="findAiSummaryByDate" resultType="AiSummary">
+        SELECT id, summary_date, summary_text, model_used, token_used, created_at
+        FROM ai_summary
+        WHERE summary_date = #{summaryDate}
+    </select>
+
+</mapper>

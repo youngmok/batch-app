@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.batch.batch_app.mapper.KakaoTokenMapper">
+
+    <select id="findLatestToken" resultType="KakaoToken">
+        SELECT id, access_token, refresh_token, token_type,
+               expires_at, refresh_expires_at, created_at, updated_at
+        FROM kakao_token
+        ORDER BY updated_at DESC
+        LIMIT 1
+    </select>
+
+    <insert id="insertToken" parameterType="KakaoToken">
+        INSERT INTO kakao_token (access_token, refresh_token, token_type, expires_at, refresh_expires_at)
+        VALUES (#{accessToken}, #{refreshToken}, #{tokenType}, #{expiresAt}, #{refreshExpiresAt})
+    </insert>
+
+    <update id="updateToken" parameterType="KakaoToken">
+        UPDATE kakao_token
+        SET access_token       = #{accessToken},
+            refresh_token      = #{refreshToken},
+            token_type         = #{tokenType},
+            expires_at         = #{expiresAt},
+            refresh_expires_at = #{refreshExpiresAt},
+            updated_at         = NOW()
+        WHERE id = #{id}
+    </update>
+
+</mapper>
